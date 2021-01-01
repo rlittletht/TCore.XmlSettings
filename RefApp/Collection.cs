@@ -28,7 +28,22 @@ namespace RefApp
 				expected = expected.Replace("$$USERNAME$$", Environment.GetEnvironmentVariable("USERNAME"));
 				Assert.AreEqual(expected, collection.SearchDirs[i]);
 			}
-			
+		}
+
+		[TestCase("foo.xml", "foo", ".xml")]
+		[TestCase("foo.xml.xml", "foo", ".xml.xml")]
+		[TestCase("foo..xml", "foo", "..xml")]
+		[TestCase("\\foo.x.xml", "foo", ".x.xml")]
+		[TestCase("s.\\x.xml", "x", ".xml")]
+		[TestCase("s.s\\x.xml", "x", ".xml")]
+		[TestCase("s.s\\.a.xml", ".a", ".xml")]
+		[Test]
+		public static void TestFileDescriptionConstruction(string sFullPath, string sNameExpected, string sExtensionExpected)
+		{
+			TCore.XmlSettings.Collection.FileDescription file = new TCore.XmlSettings.Collection.FileDescription(sFullPath);
+
+			Assert.AreEqual(sNameExpected, file.Name);
+			Assert.AreEqual(sExtensionExpected, file.Extension);
 		}
 	}
 }

@@ -51,6 +51,63 @@ namespace TCore.XmlSettings
 		}
 
 		/*----------------------------------------------------------------------------
+			%%Function:TerminateAfterReadingElement
+			%%Qualified:TCore.XmlSettings.XmlDescriptionBuilder<T>.TerminateAfterReadingElement
+
+			After completely reading the element (including its values or children),
+			cancel the parse gracefully
+		----------------------------------------------------------------------------*/
+		public XmlDescriptionBuilder<T> TerminateAfterReadingElement()
+		{
+			if (elementStack.Count == 0)
+				throw new Exception("no element to add to. cannot have multiple root elements");
+
+			elementStack[elementStack.Count - 1].TerminateAfterReadingElement = true;
+			return this;
+		}
+
+		/*----------------------------------------------------------------------------
+			%%Function:TerminateAfterReadingAttributes
+			%%Qualified:TCore.XmlSettings.XmlDescriptionBuilder<T>.TerminateAfterReadingAttributes
+
+			After reading the attributes for this element (but none of its children
+			or its value), cancel the parse gracefully
+		----------------------------------------------------------------------------*/
+		public XmlDescriptionBuilder<T> TerminateAfterReadingAttributes()
+		{
+			if (elementStack.Count == 0)
+				throw new Exception("no element to add to. cannot have multiple root elements");
+
+			elementStack[elementStack.Count - 1].TerminateAfterReadingAttributes = true;
+			return this;
+		}
+
+		/*----------------------------------------------------------------------------
+			%%Function:DiscardAttributesWithNoSetter
+			%%Qualified:TCore.XmlSettings.XmlDescriptionBuilder<T>.DiscardAttributesWithNoSetter
+
+			If we have a defined attribute, but not setter provided, just ignore
+			the attribute
+		----------------------------------------------------------------------------*/
+		public XmlDescriptionBuilder<T> DiscardAttributesWithNoSetter()
+		{
+			building.DiscardAttributesWithNoSetter = true;
+			return this;
+		}
+
+		/*----------------------------------------------------------------------------
+			%%Function:DiscardUnknownAttributes
+			%%Qualified:TCore.XmlSettings.XmlDescriptionBuilder<T>.DiscardUnknownAttributes
+
+			if we encounter an attribute we don't recognize, just skip it
+		----------------------------------------------------------------------------*/
+		public XmlDescriptionBuilder<T> DiscardUnknownAttributes()
+		{
+			building.DiscardUnknownAttributes = true;
+			return this;
+		}
+		
+		/*----------------------------------------------------------------------------
 			%%Function:AddChildElement
 			%%Qualified:TCore.XmlSettings.XmlDescriptionBuilder<T>.AddChildElement
 
@@ -62,7 +119,7 @@ namespace TCore.XmlSettings
 			Element<T>.SetValueDelegate setValueDelegate = null,
 			string ns = null)
 		{
-			Element<T> element = new Element<T>(ns ?? building.Namespace, elementName, getValueDelegate, setValueDelegate, null);
+			Element<T> element = new Element<T>(building, ns ?? building.Namespace, elementName, getValueDelegate, setValueDelegate, null);
 
 			// add this element as a child of the current element
 			elementStack[elementStack.Count - 1].Children.Add(element);

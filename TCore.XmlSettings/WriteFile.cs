@@ -6,7 +6,7 @@ using System.Xml;
 
 namespace TCore.XmlSettings
 {
-	public class WriteFile<T>
+	public class WriteFile<T> : IDisposable
 	{
 		private T m_t;
 		private XmlDescription<T> m_xmlDescription;
@@ -189,6 +189,11 @@ namespace TCore.XmlSettings
 				m_writer.WriteEndElement();
 
 			return fWroteChildren;
+		}
+
+		public void Dispose()
+		{
+			((IDisposable)m_writer).Dispose();
 		}
 	}
 }

@@ -25,12 +25,53 @@ namespace TCore.XmlSettings
 
 		public class FileDescription
 		{
+			public string Extension { get; set; }
 			public string FullPath { get; set; }
-			public string Name => Path.GetFileName(FullPath);
+			public string NameWithExtension => Path.GetFileName(FullPath);
+			public string Name
+			{
+				get
+				{
+					string sLeaf = Path.GetFileName(FullPath);
 
+					if (Extension.Length == 0)
+						return sLeaf;
+					
+					return sLeaf.Substring(0, sLeaf.Length - Extension.Length);
+				}
+			}
+
+			private const string s_noExtension = "";
+			
 			public FileDescription(string fullPath)
 			{
 				FullPath = fullPath;
+				Extension = s_noExtension;
+				// automagically detect extension
+				int ichLastDot = fullPath.LastIndexOf('.');
+				
+				if (ichLastDot > 0)
+				{
+					// now, some of our extensions are "doubled" ("*.ds.xml").
+					// so see if there's another dot sufficently close (before the
+					// last "\\" and within 3 characters
+
+					int ichSlash = fullPath.LastIndexOf('\\');
+					if (ichSlash < ichLastDot)
+					{
+						int ichPenultimateDot = fullPath.LastIndexOf('.', ichLastDot - 1);
+
+						// can't have an empty filename, so "\\.a.foo" must be ".a" and ".foo"
+						if (ichPenultimateDot > ichSlash + 1 && ichPenultimateDot + 5 > ichLastDot)
+						{
+							Extension = fullPath.Substring(ichPenultimateDot);
+						}
+						else
+						{
+							Extension = fullPath.Substring(ichLastDot);
+						}
+					}
+				}
 			}
 		}
 
@@ -112,10 +153,10 @@ namespace TCore.XmlSettings
 			}
 		}
 
-		internal string GetFullPathName(string settingName)
+		public string GetFullPathName(string settingName)
 		{
 			if (!settingName.ToLower().EndsWith(FileTypes[0].Extension.ToLower()))
-				settingName = $"settingName{FileTypes[0].Extension}";
+				settingName = $"{settingName}{FileTypes[0].Extension}";
 
 			return Path.Combine(SearchDirs[0], settingName);
 		}
@@ -127,11 +168,9 @@ namespace TCore.XmlSettings
 			return WriteFile<T>.CreateSettingsFile(tw);
 		}
 
-		public ReadFile<T> CreateSettingsReadFile<T>(XmlDescription<T> description, FileDescription fileDescription, T t)
+		public static ReadFile<T> CreateSettingsReadFile<T>(FileDescription fileDescription)
 		{
-			TextReader tr = new StreamReader(fileDescription.FullPath);
-
-			return ReadFile<T>.CreateSettingsFile(description, tr, t);
+			return ReadFile<T>.CreateSettingsFile(fileDescription.FullPath);
 		}
 		
 		public IEnumerable<FileDescription> SettingsFiles()

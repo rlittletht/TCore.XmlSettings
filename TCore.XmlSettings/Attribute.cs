@@ -42,10 +42,15 @@ namespace TCore.XmlSettings
 
 			Set the value using the delegate we were given
 		----------------------------------------------------------------------------*/
-		public void SetValue(T t, string value)
+		public void SetValue(T t, string value, bool discardIfNoSetter)
 		{
 			if (m_delegateSetValue == null)
-				throw new Exception("trying to set value on attribute with no delegate");
+			{
+				if (!discardIfNoSetter)
+					throw new Exception("trying to set value on attribute with no delegate");
+				
+				return;
+			}
 
 			m_delegateSetValue(t, value);
 		}

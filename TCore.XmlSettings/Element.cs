@@ -5,6 +5,8 @@ namespace TCore.XmlSettings
 {
 	public class Element<T>
 	{
+		public XmlDescription<T> ParentDescription { get; set; }
+		
 		public delegate void SetValueDelegate(T t, string value);
 		public delegate string GetValueDelegate(T t);
 		
@@ -14,7 +16,9 @@ namespace TCore.XmlSettings
 		public List<Attribute<T>> Attributes { get; set; }
 		public List<Element<T>> Children { get; set; }
 		public bool Required { get; set; }
-
+		public bool TerminateAfterReadingElement{ get; set; }
+		public bool TerminateAfterReadingAttributes { get; set; }
+		
 		private readonly GetValueDelegate m_getValueDelegate;
 		private readonly SetValueDelegate m_setValueDelegate;
 
@@ -56,12 +60,14 @@ namespace TCore.XmlSettings
 			%%Qualified:TCore.XmlSettings.Element<T>.Element
 		----------------------------------------------------------------------------*/
 		public Element(
+			XmlDescription<T> parent,
 			string ns, 
 			string elementName, 
 			GetValueDelegate getValueDelegate, 
 			SetValueDelegate setValueDelegate, 
 			List<Attribute<T>> attributes)
 		{
+			ParentDescription = parent;
 			Namespace = ns;
 			ElementName = elementName;
 			Attributes = attributes;

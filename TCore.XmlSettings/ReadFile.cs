@@ -7,7 +7,7 @@ using XMLIO;
 
 namespace TCore.XmlSettings
 {
-	public class ReadFile<T>
+	public class ReadFile<T> : IDisposable
 	{
 		private T m_t;
 		private XmlDescription<T> m_xmlDescription;
@@ -42,13 +42,10 @@ namespace TCore.XmlSettings
 
 			Create a WriteFile for the given path
 		----------------------------------------------------------------------------*/
-		public static ReadFile<T> CreateSettingsFile(XmlDescription<T> description, string path, T t)
+		public static ReadFile<T> CreateSettingsFile(string path)
 		{
 			TextReader textReader = new StreamReader(path);
 			ReadFile<T> file = new ReadFile<T>(textReader);
-
-			file.m_t = t;
-			file.m_xmlDescription = description;
 
 			return file;
 		}
@@ -57,16 +54,54 @@ namespace TCore.XmlSettings
 			%%Function:CreateSettingsFile
 			%%Qualified:TCore.XmlSettings.ReadFile<T>.CreateSettingsFile
 		----------------------------------------------------------------------------*/
-		public static ReadFile<T> CreateSettingsFile(XmlDescription<T> description, TextReader textReader, T t)
+		public static ReadFile<T> CreateSettingsFile(TextReader textReader)
 		{
 			ReadFile<T> file = new ReadFile<T>(textReader);
-
-			file.m_t = t;
-			file.m_xmlDescription = description;
 
 			return file;
 		}
 
+
+		/*----------------------------------------------------------------------------
+			%%Function:DeSerialize
+			%%Qualified:TCore.XmlSettings.ReadFile<T>.DeSerialize
+		----------------------------------------------------------------------------*/
+		public void DeSerialize(XmlDescription<T> description, T t)
+		{
+			m_t = t;
+			m_xmlDescription = description;
+			
+			// start reading, from the mandatory root element
+			Element<T> element = m_xmlDescription.RootElement;
+
+			// if the config is empty, return null
+			if (!XmlIO.Read(m_reader))
+				return;
+
+			XmlIO.SkipNonContent(m_reader);
+
+			XmlIO.ContentCollector contentCollector = new XmlIO.ContentCollector();
+
+			try
+			{
+				if (!XmlIO.FReadElement<ReadFileContext>(
+					m_reader,
+					new ReadFileContext(m_t, element),
+					element.ElementName,
+					ProcessAttributes,
+					ParseElement,
+					contentCollector))
+					throw new Exception("deserialize failed");
+			}
+			catch (XMLIO.Exceptions.UserCancelledException)
+			{
+				// this is totally fine. it means we were asked to cancel early
+			}
+
+			if (contentCollector.ToString().Length > 0)
+				element.SetValue(m_t, contentCollector.ToString());
+		}
+		
 		/*----------------------------------------------------------------------------
 			%%Function:ProcessAttributes
 			%%Qualified:TCore.XmlSettings.ReadFile<T>.ProcessAttributes
@@ -77,10 +112,13 @@ namespace TCore.XmlSettings
 			{
 				if (attribute.AttributeName == sAttribute)
 				{
-					attribute.SetValue(context.Data, value);
+					attribute.SetValue(context.Data, value, context.CurrentElement.ParentDescription.DiscardAttributesWithNoSetter);
 					return true;
 				}
 			}
+
+			if (context.CurrentElement.ParentDescription.DiscardUnknownAttributes)
+				return true;
 			
 			return false;
 		}
@@ -91,6 +129,14 @@ namespace TCore.XmlSettings
 		----------------------------------------------------------------------------*/
 		static bool ParseElement(XmlReader reader, string sElement, ReadFileContext context)
 		{
+			if (context.CurrentElement.TerminateAfterReadingAttributes)
+			{
+				// before we try to parse anything, check to see if we're supposed
+				// to cancel after attributes (we've read attributes by now because
+				// we're being asked to parse an element...
+				throw new XMLIO.Exceptions.UserCancelledException();
+			}
+			
 			foreach (Element<T> element in context.CurrentElement.Children)
 			{
 				if (element.ElementName == sElement)
@@ -107,42 +153,23 @@ namespace TCore.XmlSettings
 					
 					if (contentCollector.ToString().Length > 0)
 						element.SetValue(context.Data, contentCollector.ToString());
+
+					if (element.TerminateAfterReadingElement)
+						throw new XMLIO.Exceptions.UserCancelledException();
 					
 					return f;
 				}
 			}
-			
+
+			if (context.CurrentElement.TerminateAfterReadingElement)
+				throw new XMLIO.Exceptions.UserCancelledException();
+
 			return false;
 		}
-		
-		/*----------------------------------------------------------------------------
-			%%Function:DeSerialize
-			%%Qualified:TCore.XmlSettings.ReadFile<T>.DeSerialize
-		----------------------------------------------------------------------------*/
-		public void DeSerialize()
+
+		public void Dispose()
 		{
-			// start reading, from the mandatory root element
-			Element<T> element = m_xmlDescription.RootElement;
-
-			// if the config is empty, return null
-			if (!XmlIO.Read(m_reader))
-				return;
-
-			XmlIO.SkipNonContent(m_reader);
-			
-			XmlIO.ContentCollector contentCollector = new XmlIO.ContentCollector();
-
-			if (!XmlIO.FReadElement<ReadFileContext>(
-				m_reader,
-				new ReadFileContext(m_t, element),
-				element.ElementName,
-				ProcessAttributes,
-				ParseElement,
-				contentCollector))
-				throw new Exception("deserialize failed");
-
-			if (contentCollector.ToString().Length > 0)
-				element.SetValue(m_t, contentCollector.ToString());
+			((IDisposable)m_reader).Dispose();
 		}
 	}
 }
