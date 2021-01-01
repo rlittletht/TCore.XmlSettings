@@ -46,16 +46,39 @@ namespace TCore.XmlSettings
 
 			Create a WriteFile on the TextWriter
 		----------------------------------------------------------------------------*/
-		public static WriteFile<T> CreateSettingsFile(XmlDescription<T> description, TextWriter textWriter, T t)
+		public static WriteFile<T> CreateSettingsFile(TextWriter textWriter)
 		{
 			WriteFile<T> file = new WriteFile<T>(textWriter);
 			
-			file.m_xmlDescription = description;
-			file.m_t = t;
-
 			return file;
 		}
 
+		/*----------------------------------------------------------------------------
+			%%Function:SerializeSettings
+			%%Qualified:TCore.XmlSettings.WriteFile<T>.SerializeSettings
+
+			Serialize the object we were given that is described by the descriptor
+			we were given.
+		
+			Perhaps take both of those here instead? No reason they should be part
+			of construction...
+		----------------------------------------------------------------------------*/
+		public bool SerializeSettings(XmlDescription<T> description, T t)
+		{
+			m_xmlDescription = description;
+			m_t = t;
+			
+			m_writer.WriteStartDocument();
+			Element<T> element = m_xmlDescription.RootElement;
+
+			List<Element<T>> latentElements = new List<Element<T>>();
+			if (!FWriteElement(element, latentElements))
+				throw new Exception("root element not required??");
+
+			m_writer.WriteEndDocument();
+			return true;
+		}
+		
 		/*----------------------------------------------------------------------------
 			%%Function:WriteElementStart
 			%%Qualified:TCore.XmlSettings.WriteFile<T>.WriteElementStart
@@ -166,29 +189,6 @@ namespace TCore.XmlSettings
 				m_writer.WriteEndElement();
 
 			return fWroteChildren;
-		}
-
-		/*----------------------------------------------------------------------------
-			%%Function:SerializeSettings
-			%%Qualified:TCore.XmlSettings.WriteFile<T>.SerializeSettings
-
-			Serialize the object we were given that is described by the descriptor
-			we were given.
-		
-			Perhaps take both of those here instead? No reason they should be part
-			of construction...
-		----------------------------------------------------------------------------*/
-		public bool SerializeSettings()
-		{
-			m_writer.WriteStartDocument();
-			Element<T> element = m_xmlDescription.RootElement;
-
-			List<Element<T>> latentElements = new List<Element<T>>();
-			if (!FWriteElement(element, latentElements))
-				throw new Exception("root element not required??");
-
-			m_writer.WriteEndDocument();
-			return true;
 		}
 	}
 }

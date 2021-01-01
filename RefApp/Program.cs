@@ -45,9 +45,9 @@ namespace RefApp
 			
 			using (StringWriter stringWriter = new StringWriter(sb))
 			{
-				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(description, stringWriter, settings);
+				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(stringWriter);
 
-				file.SerializeSettings();
+				file.SerializeSettings(description, settings);
 				stringWriter.Flush();
 			}
 
@@ -74,9 +74,9 @@ namespace RefApp
 
 			using (StringWriter stringWriter = new StringWriter(sb))
 			{
-				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(description, stringWriter, settings);
+				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(stringWriter);
 
-				file.SerializeSettings();
+				file.SerializeSettings(description, settings);
 				stringWriter.Flush();
 			}
 
@@ -104,9 +104,9 @@ namespace RefApp
 
 			using (StringWriter stringWriter = new StringWriter(sb))
 			{
-				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(description, stringWriter, settings);
+				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(stringWriter);
 
-				file.SerializeSettings();
+				file.SerializeSettings(description, settings);
 				stringWriter.Flush();
 			}
 
@@ -132,9 +132,9 @@ namespace RefApp
 
 			using (StringWriter stringWriter = new StringWriter(sb))
 			{
-				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(description, stringWriter, settings);
+				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(stringWriter);
 
-				file.SerializeSettings();
+				file.SerializeSettings(description, settings);
 				stringWriter.Flush();
 			}
 
@@ -161,13 +161,92 @@ namespace RefApp
 
 			using (StringWriter stringWriter = new StringWriter(sb))
 			{
-				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(description, stringWriter, settings);
+				WriteFile<MySettings> file = WriteFile<MySettings>.CreateSettingsFile(stringWriter);
 
-				file.SerializeSettings();
+				file.SerializeSettings(description, settings);
 				stringWriter.Flush();
 			}
 
 			Assert.AreEqual($"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><numFoo attrNumFoo=\"1\" /></refSettings>", sb.ToString());
+		}
+		
+		[Test]
+		public static void TestSimpleSettingsFileRead_SingleContentElement()
+		{
+			MySettings settings = new MySettings();
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			XmlDescription<MySettings> description =
+				XmlDescriptionBuilder<MySettings>
+					.Build(ns, "refSettings")
+					.AddChildElement("numFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); });
+
+			string sXml =
+				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><numFoo>1</numFoo></refSettings>";
+			
+			using (StringReader stringWriter = new StringReader(sXml))
+			{
+				ReadFile<MySettings> file = ReadFile<MySettings>.CreateSettingsFile(description, stringWriter, settings);
+
+				file.DeSerialize();
+			}
+
+			Assert.AreEqual(1, settings.NumFoo);
+		}
+
+		[Test]
+		public static void TestSimpleSettingsFileRead_Attributes()
+		{
+			MySettings settings = new MySettings();
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			XmlDescription<MySettings> description =
+				XmlDescriptionBuilder<MySettings>
+					.Build(ns, "refSettings")
+					.AddChildElement("numFoo", null, null)
+					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
+					.AddAttribute("attrStringBar", MySettings.GetStringBarValue, (_settings, _value) => { _settings.StringBar = _value; });
+
+
+			string sXml =
+				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><numFoo attrNumFoo='1' attrStringBar='foo'/></refSettings>";
+
+			using (StringReader stringWriter = new StringReader(sXml))
+			{
+				ReadFile<MySettings> file = ReadFile<MySettings>.CreateSettingsFile(description, stringWriter, settings);
+
+				file.DeSerialize();
+			}
+
+			Assert.AreEqual(1, settings.NumFoo);
+			Assert.AreEqual("foo", settings.StringBar);
+		}
+
+		[Test]
+		public static void TestSimpleSettingsFileRead_RootElementWithAttributes()
+		{
+			MySettings settings = new MySettings();
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			XmlDescription<MySettings> description =
+				XmlDescriptionBuilder<MySettings>
+					.Build(ns, "refSettings")
+					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
+					.AddAttribute("attrStringBar", MySettings.GetStringBarValue, (_settings, _value) => { _settings.StringBar = _value; });
+
+
+			string sXml =
+				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\" attrNumFoo='1' attrStringBar='foo'/>";
+
+			using (StringReader stringWriter = new StringReader(sXml))
+			{
+				ReadFile<MySettings> file = ReadFile<MySettings>.CreateSettingsFile(description, stringWriter, settings);
+
+				file.DeSerialize();
+			}
+
+			Assert.AreEqual(1, settings.NumFoo);
+			Assert.AreEqual("foo", settings.StringBar);
 		}
 	}
 }
