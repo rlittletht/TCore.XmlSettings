@@ -22,8 +22,10 @@ namespace RefApp
 			public string StringBar { get; set; }
 			public List<string> StringsBar { get; set; }
 
-			public static string GetNumFooValue(MySettings settings) => settings.NumFoo.ToString();
-			public static string GetStringBarValue(MySettings settings) => settings.StringBar;
+			public static void SetNumFooValue(MySettings settings, string value, RepeatContext<MySettings>.RepeatItem repeatItem) => settings.NumFoo = Int32.Parse(value);
+			public static string GetNumFooValue(MySettings settings, RepeatContext<MySettings>.RepeatItem repeatItem) => settings.NumFoo.ToString();
+			public static void SetStringBarValue(MySettings settings, string value, RepeatContext<MySettings>.RepeatItem repeatItem) => settings.StringBar = value;
+			public static string GetStringBarValue(MySettings settings, RepeatContext<MySettings>.RepeatItem repeatItem) => settings.StringBar;
 		}
 		
 		[Test]
@@ -38,8 +40,8 @@ namespace RefApp
 			XmlDescription<MySettings> description =
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
-					.AddChildElement("numFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
-					.AddElement("StringBar", MySettings.GetStringBarValue, (_settings, _value) => { _settings.StringBar = _value; });
+					.AddChildElement("numFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue)
+					.AddElement("StringBar", MySettings.GetStringBarValue, MySettings.SetStringBarValue);
 
 			StringBuilder sb = new StringBuilder();
 			
@@ -67,9 +69,9 @@ namespace RefApp
 			XmlDescription<MySettings> description =
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
-					.AddChildElement("numFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
+					.AddChildElement("numFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue)
 					.AddElement("Parent", null, null)
-					.AddChildElement("StringBar", MySettings.GetStringBarValue, (_settings, _value) => { _settings.StringBar = _value; });
+					.AddChildElement("StringBar", MySettings.GetStringBarValue, MySettings.SetStringBarValue);
 
 			StringBuilder sb = new StringBuilder();
 
@@ -98,9 +100,9 @@ namespace RefApp
 			XmlDescription<MySettings> description =
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
-					.AddChildElement("numFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
+					.AddChildElement("numFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue)
 					.AddElement("Parent", null, null)
-					.AddChildElement("StringBar", MySettings.GetStringBarValue, (_settings, _value) => { _settings.StringBar = _value; });
+					.AddChildElement("StringBar", MySettings.GetStringBarValue, MySettings.SetStringBarValue);
 
 			StringBuilder sb = new StringBuilder();
 
@@ -129,7 +131,7 @@ namespace RefApp
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
 					.AddChildElement("numFoo", null, null)
-					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); });
+					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue);
 
 			StringBuilder sb = new StringBuilder();
 
@@ -158,8 +160,8 @@ namespace RefApp
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
 					.AddChildElement("numFoo", null, null)
-					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
-					.AddAttribute("attrStringBar", MySettings.GetStringBarValue, (_settings, _value) => { _settings.StringBar = _value; });
+					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue)
+					.AddAttribute("attrStringBar", MySettings.GetStringBarValue, MySettings.SetNumFooValue);
 
 			StringBuilder sb = new StringBuilder();
 
@@ -184,7 +186,7 @@ namespace RefApp
 			XmlDescription<MySettings> description =
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
-					.AddChildElement("numFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); });
+					.AddChildElement("numFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue);
 
 			string sXml =
 				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><numFoo>1</numFoo></refSettings>";
@@ -208,8 +210,8 @@ namespace RefApp
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
 					.AddChildElement("numFoo", null, null)
-					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
-					.AddAttribute("attrStringBar", MySettings.GetStringBarValue, (_settings, _value) => { _settings.StringBar = _value; });
+					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue)
+					.AddAttribute("attrStringBar", MySettings.GetStringBarValue, MySettings.SetStringBarValue);
 
 
 			string sXml =
@@ -234,8 +236,8 @@ namespace RefApp
 			XmlDescription<MySettings> description =
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
-					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
-					.AddAttribute("attrStringBar", MySettings.GetStringBarValue, (_settings, _value) => { _settings.StringBar = _value; });
+					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue)
+					.AddAttribute("attrStringBar", MySettings.GetStringBarValue, MySettings.SetStringBarValue);
 
 
 			string sXml =
@@ -261,7 +263,7 @@ namespace RefApp
 			XmlDescription<MySettings> description =
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
-					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
+					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue)
 					.TerminateAfterReadingAttributes();
 
 			StringBuilder sb = new StringBuilder();
@@ -288,9 +290,9 @@ namespace RefApp
 			XmlDescription<MySettings> description =
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
-					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
+					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue)
 					.TerminateAfterReadingAttributes()
-					.AddChildElement("StringBar", null, (_settings, _value) => { _settings.StringBar = _value; });
+					.AddChildElement("StringBar", null, MySettings.SetStringBarValue);
 
 			StringBuilder sb = new StringBuilder();
 
@@ -316,8 +318,8 @@ namespace RefApp
 			XmlDescription<MySettings> description =
 				XmlDescriptionBuilder<MySettings>
 					.Build(ns, "refSettings")
-					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, (_settings, _value) => { _settings.NumFoo = Int32.Parse(_value); })
-					.AddChildElement("StringBar", null, (_settings, _value) => { _settings.StringBar = _value; })
+					.AddAttribute("attrNumFoo", MySettings.GetNumFooValue, MySettings.SetNumFooValue)
+					.AddChildElement("StringBar", null, MySettings.SetStringBarValue)
 					.TerminateAfterReadingElement();
 
 			StringBuilder sb = new StringBuilder();

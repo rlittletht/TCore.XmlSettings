@@ -140,13 +140,21 @@ namespace TCore.XmlSettings
 		----------------------------------------------------------------------------*/
 		public XmlDescriptionBuilder<T> AddElement(
 			string elementName,
-			Element<T>.GetValueDelegate getValueDelegate,
-			Element<T>.SetValueDelegate setValueDelegate,
+			Element<T>.GetValueDelegate getValueDelegate = null,
+			Element<T>.SetValueDelegate setValueDelegate = null,
 			string ns = null)
 		{
 			return Pop().AddChildElement(elementName, getValueDelegate, setValueDelegate, ns);
 		}
 
+		public XmlDescriptionBuilder<T> SetRepeating(
+			RepeatContext<T>.CreateRepeatItem createRepeatItemDelegate,
+			RepeatContext<T>.CommitRepeatItem commitRepeatItemDelegate)
+		{
+			elementStack[elementStack.Count - 1].SetRepeating(createRepeatItemDelegate, commitRepeatItemDelegate);
+			return this;
+		}
+		
 		/*----------------------------------------------------------------------------
 			%%Function:AddAttribute
 			%%Qualified:TCore.XmlSettings.XmlDescriptionBuilder<T>.AddAttribute

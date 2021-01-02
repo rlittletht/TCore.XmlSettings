@@ -17,11 +17,13 @@ namespace TCore.XmlSettings
 		{
 			public T Data { get; set; }
 			public Element<T> CurrentElement { get; set; }
+			public RepeatContext<T>.RepeatItem RepeatItemContext { get; set; }
 			
-			public ReadFileContext(T t, Element<T> currentElement)
+			public ReadFileContext(T t, Element<T> currentElement, RepeatContext<T>.RepeatItem repeatItem = null)
 			{
 				Data = t;
 				CurrentElement = currentElement;
+				RepeatItemContext = repeatItem;
 			}
 		}
 		
@@ -112,7 +114,7 @@ namespace TCore.XmlSettings
 			{
 				if (attribute.AttributeName == sAttribute)
 				{
-					attribute.SetValue(context.Data, value, context.CurrentElement.ParentDescription.DiscardAttributesWithNoSetter);
+					attribute.SetValue(context.Data, value, context.CurrentElement.ParentDescription.DiscardAttributesWithNoSetter, context.RepeatItemContext);
 					return true;
 				}
 			}
@@ -133,7 +135,8 @@ namespace TCore.XmlSettings
 			{
 				// before we try to parse anything, check to see if we're supposed
 				// to cancel after attributes (we've read attributes by now because
-				// we're being asked to parse an element...
+				// we're being asked to parse an element that is a child of 
+				// context.CurrentElement
 				throw new XMLIO.Exceptions.UserCancelledException();
 			}
 			
@@ -142,18 +145,29 @@ namespace TCore.XmlSettings
 				if (element.ElementName == sElement)
 				{
 					XmlIO.ContentCollector contentCollector = new XmlIO.ContentCollector();
+					ReadFileContext contextNew = new ReadFileContext(context.Data, element, context.RepeatItemContext);
+					
+					// before we read this element, if its a repeating element, create its
+					// repeating context
 
+					if (element.IsRepeating)
+						contextNew.RepeatItemContext = element.CreateRepeatItem(element, context.RepeatItemContext);
+					
 					bool f = XmlIO.FReadElement(
 						reader,
-						new ReadFileContext(context.Data, element),
+						contextNew,
 						element.ElementName,
 						ProcessAttributes,
 						ParseElement,
 						contentCollector);
 					
 					if (contentCollector.ToString().Length > 0)
-						element.SetValue(context.Data, contentCollector.ToString());
+						element.SetValue(context.Data, contentCollector.ToString(), contextNew.RepeatItemContext);
 
+					// and now that we're done processing the element, commit any repeating item
+					if (element.IsRepeating)
+						element.CommitRepeatItem(contextNew.Data, contextNew.RepeatItemContext);
+					
 					if (element.TerminateAfterReadingElement)
 						throw new XMLIO.Exceptions.UserCancelledException();
 					
@@ -164,7 +178,7 @@ namespace TCore.XmlSettings
 			if (context.CurrentElement.TerminateAfterReadingElement)
 				throw new XMLIO.Exceptions.UserCancelledException();
 
-			return false;
+			throw new Exception($"Unknown element {sElement} encountered");
 		}
 
 		public void Dispose()
