@@ -17,13 +17,13 @@ namespace TCore.XmlSettings
 		{
 			public T Data { get; set; }
 			public Element<T> CurrentElement { get; set; }
-			public RepeatContext<T>.RepeatItem RepeatItemContext { get; set; }
+			public RepeatContext<T>.RepeatItemContext RepeatItemContextContext { get; set; }
 			
-			public ReadFileContext(T t, Element<T> currentElement, RepeatContext<T>.RepeatItem repeatItem = null)
+			public ReadFileContext(T t, Element<T> currentElement, RepeatContext<T>.RepeatItemContext repeatItemContext = null)
 			{
 				Data = t;
 				CurrentElement = currentElement;
-				RepeatItemContext = repeatItem;
+				RepeatItemContextContext = repeatItemContext;
 			}
 		}
 		
@@ -114,7 +114,7 @@ namespace TCore.XmlSettings
 			{
 				if (attribute.AttributeName == sAttribute)
 				{
-					attribute.SetValue(context.Data, value, context.CurrentElement.ParentDescription.DiscardAttributesWithNoSetter, context.RepeatItemContext);
+					attribute.SetValue(context.Data, value, context.CurrentElement.ParentDescription.DiscardAttributesWithNoSetter, context.RepeatItemContextContext);
 					return true;
 				}
 			}
@@ -145,13 +145,13 @@ namespace TCore.XmlSettings
 				if (element.ElementName == sElement)
 				{
 					XmlIO.ContentCollector contentCollector = new XmlIO.ContentCollector();
-					ReadFileContext contextNew = new ReadFileContext(context.Data, element, context.RepeatItemContext);
+					ReadFileContext contextNew = new ReadFileContext(context.Data, element, context.RepeatItemContextContext);
 					
 					// before we read this element, if its a repeating element, create its
 					// repeating context
 
 					if (element.IsRepeating)
-						contextNew.RepeatItemContext = element.CreateRepeatItem(element, context.RepeatItemContext);
+						contextNew.RepeatItemContextContext = element.CreateRepeatItem(context.Data, element, context.RepeatItemContextContext);
 					
 					bool f = XmlIO.FReadElement(
 						reader,
@@ -162,11 +162,11 @@ namespace TCore.XmlSettings
 						contentCollector);
 					
 					if (contentCollector.ToString().Length > 0)
-						element.SetValue(context.Data, contentCollector.ToString(), contextNew.RepeatItemContext);
+						element.SetValue(context.Data, contentCollector.ToString(), contextNew.RepeatItemContextContext);
 
 					// and now that we're done processing the element, commit any repeating item
 					if (element.IsRepeating)
-						element.CommitRepeatItem(contextNew.Data, contextNew.RepeatItemContext);
+						element.CommitRepeatItem(contextNew.Data, contextNew.RepeatItemContextContext);
 					
 					if (element.TerminateAfterReadingElement)
 						throw new XMLIO.Exceptions.UserCancelledException();

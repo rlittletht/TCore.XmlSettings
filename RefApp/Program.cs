@@ -22,10 +22,10 @@ namespace RefApp
 			public string StringBar { get; set; }
 			public List<string> StringsBar { get; set; }
 
-			public static void SetNumFooValue(MySettings settings, string value, RepeatContext<MySettings>.RepeatItem repeatItem) => settings.NumFoo = Int32.Parse(value);
-			public static string GetNumFooValue(MySettings settings, RepeatContext<MySettings>.RepeatItem repeatItem) => settings.NumFoo.ToString();
-			public static void SetStringBarValue(MySettings settings, string value, RepeatContext<MySettings>.RepeatItem repeatItem) => settings.StringBar = value;
-			public static string GetStringBarValue(MySettings settings, RepeatContext<MySettings>.RepeatItem repeatItem) => settings.StringBar;
+			public static void SetNumFooValue(MySettings settings, string value, RepeatContext<MySettings>.RepeatItemContext repeatItemContext) => settings.NumFoo = Int32.Parse(value);
+			public static string GetNumFooValue(MySettings settings, RepeatContext<MySettings>.RepeatItemContext repeatItemContext) => settings.NumFoo.ToString();
+			public static void SetStringBarValue(MySettings settings, string value, RepeatContext<MySettings>.RepeatItemContext repeatItemContext) => settings.StringBar = value;
+			public static string GetStringBarValue(MySettings settings, RepeatContext<MySettings>.RepeatItemContext repeatItemContext) => settings.StringBar;
 		}
 		
 		[Test]

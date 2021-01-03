@@ -13,26 +13,32 @@ namespace RefApp
 	{
 		public RepeatingItemTests() { }
 
+		// Generic RepeatSettings class used by all tests. This often has more than we need for any given test
+		// (Also note the generic applicability of the Set/Get value functions. Interchangeable for attributes
+		// and elements)
 		class RepeatSettings
 		{
 			public int NumFoo { get; set; }
 			public string StringBar { get; set; }
-			public List<string> StringsBar { get; set; }
+			public List<string> StringBars { get; set; }
 
+			public int CurrentStringBar { get; set; }
 			public class Nested
 			{
 				public string Name { get; set; }
 				public int NestedNumFoo { get; set; }
 				public List<string> NestedStrings { get; set; }
+				public int CurrentNestedString { get; set; }
 			}
-			
-			public Dictionary<string, Nested> MapNested { get; set; }
 
-			public static void SetNumFooValueSmart(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItem repeatItem)
+			public Dictionary<string, Nested> MapNested { get; set; }
+			public IEnumerator<string> NestedEnumerator { get; set; }
+
+			public static void SetNumFooValueSmart(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext)
 			{
-				if (repeatItem != null)
+				if (repeatItemContext != null)
 				{
-					Nested nested = (Nested)repeatItem.RepeatKey;
+					Nested nested = (Nested)repeatItemContext.RepeatKey;
 					nested.NestedNumFoo = Int32.Parse(value);
 				}
 				else
@@ -41,69 +47,168 @@ namespace RefApp
 				}
 			} 
 			
-			public static string GetNumFooValueSmart(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItem repeatItem)
+			public static string GetNumFooValueSmart(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext)
 			{
-				if (repeatItem != null)
+				if (repeatItemContext != null)
 				{
-					Nested nested = (Nested)repeatItem.RepeatKey;
+					Nested nested = (Nested)repeatItemContext.RepeatKey;
 					return nested.NestedNumFoo.ToString();
 				}
 				return settings.NumFoo.ToString();
 			}
 
-			public static void SetNumFooValue(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => settings.NumFoo = Int32.Parse(value);
-			public static string GetNumFooValue(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => settings.NumFoo.ToString();
-			public static void SetStringBarValue(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => settings.StringBar = value;
-			public static string GetStringBarValue(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => settings.StringBar;
+			// Parser Accessors for Top Level items
+			public static void SetNumFooValue(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => settings.NumFoo = Int32.Parse(value);
+			public static string GetNumFooValue(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => settings.NumFoo.ToString();
+			public static void SetStringBarValue(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => settings.StringBar = value;
+			public static string GetStringBarValue(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => settings.StringBar;
 
-			public static void SetNumFooValueNested(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => ((Nested)repeatItem.RepeatKey).NestedNumFoo = Int32.Parse(value);
-			public static string GetNumFooValueNested(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => ((Nested)repeatItem.RepeatKey).NestedNumFoo.ToString();
+			public static void SetNumFooValueNested(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).NestedNumFoo = Int32.Parse(value);
+			public static string GetNumFooValueNested(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).NestedNumFoo.ToString();
 
-			public static void SetNestedName(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => ((Nested)repeatItem.RepeatKey).Name = value;
-			public static string GetNestedName(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => ((Nested)repeatItem.RepeatKey).Name;
+			public static void SetNestedName(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).Name = value;
+			public static string GetNestedName(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).Name;
 
-			public static void SetCollectionItem(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => ((string[])repeatItem.RepeatKey)[0] = value;
-			public static string GetCollectionItem(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItem repeatItem) => ((string[])repeatItem.RepeatKey)[0];
-			
-			public static RepeatContext<RepeatSettings>.RepeatItem CreateCollectionRepeatItem(Element<RepeatSettings> element, RepeatContext<RepeatSettings>.RepeatItem parent) => new RepeatContext<RepeatSettings>.RepeatItem(element, parent, new string[1]);
+			// Top level simple collection
 
-			public static void CommitCollectionRepeatItem(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItem item)
+			#region Top Level Collection
+
+			public static void SetCollectionItem(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((string[])repeatItemContext.RepeatKey)[0] = value;
+			public static string GetCollectionItem(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((string[])repeatItemContext.RepeatKey)[0];
+
+			public static RepeatContext<RepeatSettings>.RepeatItemContext CreateCollectionRepeatItem(
+				RepeatSettings settings,
+				Element<RepeatSettings> element,
+				RepeatContext<RepeatSettings>.RepeatItemContext parent)
 			{
-				if (settings.StringsBar == null)
-					settings.StringsBar = new List<string>();
+				if (settings.StringBars != null && settings.CurrentStringBar != -1 && settings.CurrentStringBar < settings.StringBars.Count)
+				{
+					return new RepeatContext<RepeatSettings>.RepeatItemContext(
+						element,
+						parent,
+						new string[1] {settings.StringBars[settings.CurrentStringBar++]});
+				}
 
-				settings.StringsBar.Add(((string[]) item.RepeatKey)[0]);
+				return new RepeatContext<RepeatSettings>.RepeatItemContext(element, parent, new string[1]);
 			}
 
-			public static void CommitNestedCollectionRepeatItem(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItem item)
+			public static bool AreRemainingItemsInCollection(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext itemContext)
 			{
-				Nested nested = (Nested) item.Parent.RepeatKey; 
+				if (settings.StringBars == null || settings.CurrentStringBar == -1)
+					return false;
+
+				if (settings.CurrentStringBar >= settings.StringBars.Count)
+				{
+					settings.CurrentStringBar = -1;
+					return false;
+				}
+
+				return true;
+			}
+			
+			public static void CommitCollectionRepeatItem(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext itemContext)
+			{
+				if (settings.StringBars == null)
+					settings.StringBars = new List<string>();
+
+				settings.StringBars.Add(((string[]) itemContext.RepeatKey)[0]);
+				settings.CurrentStringBar = settings.StringBars.Count; // by definition we're done with the previous one.
+			}
+
+			#endregion
+
+			#region Nested Collection
+			public static void CommitNestedCollectionRepeatItem(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext itemContext)
+			{
+				Nested nested = (Nested) itemContext.Parent.RepeatKey; 
 				
 				if (nested.NestedStrings == null)
 					nested.NestedStrings = new List<string>();
 
-				nested.NestedStrings.Add(((string[])item.RepeatKey)[0]);
+				nested.NestedStrings.Add(((string[])itemContext.RepeatKey)[0]);
+				nested.CurrentNestedString = nested.NestedStrings.Count;
 			}
 
-			// now to build our
-			public static RepeatContext<RepeatSettings>.RepeatItem CreateNestedRepeatItem(Element<RepeatSettings> element, RepeatContext<RepeatSettings>.RepeatItem parent) => new RepeatContext<RepeatSettings>.RepeatItem(element, parent, new Nested());
-
-			public static void CommitRepeatItem(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItem item)
+			public static bool AreRemainingItemsInNestedCollection(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext itemContext)
 			{
-				Nested nested = (Nested) item.RepeatKey;
+				Nested nested = (Nested)itemContext.RepeatKey;
+
+				if (nested.NestedStrings == null || nested.CurrentNestedString == -1)
+					return false;
+
+				if (nested.CurrentNestedString >= nested.NestedStrings.Count)
+				{
+					nested.CurrentNestedString = -1;
+					return false;
+				}
+
+				return true;
+			}
+
+			public static RepeatContext<RepeatSettings>.RepeatItemContext CreateNestedCollectionRepeatItem(
+				RepeatSettings settings,
+				Element<RepeatSettings> element,
+				RepeatContext<RepeatSettings>.RepeatItemContext parent)
+			{
+				Nested nested = (Nested)parent?.RepeatKey;
+
+				if (nested?.NestedStrings != null && nested.CurrentNestedString != -1 && nested.CurrentNestedString < nested.NestedStrings.Count)
+					return new RepeatContext<RepeatSettings>.RepeatItemContext(element, parent, new string[1] { nested.NestedStrings[nested.CurrentNestedString++] });
+
+				return new RepeatContext<RepeatSettings>.RepeatItemContext(element, parent, new string[1]);
+			}
+			#endregion
+
+			#region Repeating Top Level Nested Item
+			// now to build our
+
+			public static RepeatContext<RepeatSettings>.RepeatItemContext CreateNestedRepeatItem(
+				RepeatSettings settings,
+				Element<RepeatSettings> element,
+				RepeatContext<RepeatSettings>.RepeatItemContext parent)
+			{
+				if (settings.MapNested != null && settings.NestedEnumerator != null)
+				{
+					// also propagate the name
+					settings.MapNested[settings.NestedEnumerator.Current].Name = settings.NestedEnumerator.Current;
+					return new RepeatContext<RepeatSettings>.RepeatItemContext(
+						element,
+						parent,
+						settings.MapNested[settings.NestedEnumerator.Current]);
+				}
+				
+				return new RepeatContext<RepeatSettings>.RepeatItemContext(element, parent, new Nested());
+			}
+
+			public static bool AreRemainingNestedItems(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext itemContext)
+			{
+				if (settings.MapNested == null)
+					return false;
+
+				if (settings.NestedEnumerator == null)
+					settings.NestedEnumerator = settings.MapNested.Keys.GetEnumerator();
+
+				return settings.NestedEnumerator.MoveNext();
+			}
+
+			public static void CommitRepeatItem(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext itemContext)
+			{
+				Nested nested = (Nested) itemContext.RepeatKey;
 				if (settings.MapNested == null)
 					settings.MapNested = new Dictionary<string, Nested>();
 				
 				settings.MapNested.Add(nested.Name, nested);
 			}
+			
+			#endregion
+			
 		}
-		
-		[Test]
-		public static void TestRepeatingClass()
-		{
-			RepeatSettings settings = new RepeatSettings();
-			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
 
+
+		#region Test Simple Top Level Repeating Class
+
+		private static XmlDescription<RepeatSettings> CreateRepeatingClassXmlDescriptor(string ns)
+		{
 			XmlDescription<RepeatSettings> description =
 				XmlDescriptionBuilder<RepeatSettings>
 					.Build(ns, "refSettings")
@@ -111,9 +216,22 @@ namespace RefApp
 					.AddElement("StringBar", RepeatSettings.GetStringBarValue, RepeatSettings.SetStringBarValue)
 					.AddElement("Nesteds")
 					.AddChildElement("Nested")
-					.SetRepeating(RepeatSettings.CreateNestedRepeatItem, RepeatSettings.CommitRepeatItem)
+					.SetRepeating(
+						RepeatSettings.CreateNestedRepeatItem,
+						RepeatSettings.AreRemainingNestedItems,
+						RepeatSettings.CommitRepeatItem)
 					.AddAttribute("Name", RepeatSettings.GetNestedName, RepeatSettings.SetNestedName)
 					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValueNested, RepeatSettings.SetNumFooValueNested);
+			return description;
+		}
+
+		[Test]
+		public static void TestRepeatingClass()
+		{
+			RepeatSettings settings = new RepeatSettings();
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			XmlDescription<RepeatSettings> description = CreateRepeatingClassXmlDescriptor(ns);
 
 			string sXml =
 				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><NumFoo>1</NumFoo><StringBar>foo</StringBar><Nesteds><Nested Name='test'><NumFoo>11</NumFoo></Nested></Nesteds></refSettings>";
@@ -136,16 +254,7 @@ namespace RefApp
 			RepeatSettings settings = new RepeatSettings();
 			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
 
-			XmlDescription<RepeatSettings> description =
-				XmlDescriptionBuilder<RepeatSettings>
-					.Build(ns, "refSettings")
-					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValue, RepeatSettings.SetNumFooValue)
-					.AddElement("StringBar", RepeatSettings.GetStringBarValue, RepeatSettings.SetStringBarValue)
-					.AddElement("Nesteds")
-					.AddChildElement("Nested")
-					.SetRepeating(RepeatSettings.CreateNestedRepeatItem, RepeatSettings.CommitRepeatItem)
-					.AddAttribute("Name", RepeatSettings.GetNestedName, RepeatSettings.SetNestedName)
-					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValueNested, RepeatSettings.SetNumFooValueNested);
+			XmlDescription<RepeatSettings> description = CreateRepeatingClassXmlDescriptor(ns);
 
 			string sXml =
 				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><NumFoo>1</NumFoo><StringBar>foo</StringBar><Nesteds><Nested Name='test'><NumFoo>11</NumFoo></Nested><Nested Name='test2'><NumFoo>22</NumFoo></Nested></Nesteds></refSettings>";
@@ -163,20 +272,41 @@ namespace RefApp
 			Assert.AreEqual(22, settings.MapNested["test2"].NestedNumFoo);
 		}
 
-		[Test]
-		public static void TestRepeatingClass_SimpleCollection()
-		{
-			RepeatSettings settings = new RepeatSettings();
-			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+		#endregion
 
-			XmlDescription<RepeatSettings> description =
+		#region Test Nested Repeating Item With Collection
+
+		static XmlDescription<RepeatSettings> CreateRepeatingNestedClassDescriptor(string ns)
+		{
+			return 
 				XmlDescriptionBuilder<RepeatSettings>
 					.Build(ns, "refSettings")
 					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValue, RepeatSettings.SetNumFooValue)
 					.AddElement("StringBar", RepeatSettings.GetStringBarValue, RepeatSettings.SetStringBarValue)
 					.AddElement("StringBars")
 					.AddChildElement("StringBar", RepeatSettings.GetCollectionItem, RepeatSettings.SetCollectionItem)
-					.SetRepeating(RepeatSettings.CreateCollectionRepeatItem, RepeatSettings.CommitCollectionRepeatItem);
+					.SetRepeating(RepeatSettings.CreateCollectionRepeatItem, RepeatSettings.AreRemainingItemsInCollection, RepeatSettings.CommitCollectionRepeatItem)
+					.Pop()
+					.AddElement("Nesteds")
+					.AddChildElement("Nested")
+					.SetRepeating(
+						RepeatSettings.CreateNestedRepeatItem,
+						RepeatSettings.AreRemainingNestedItems,
+						RepeatSettings.CommitRepeatItem).AddAttribute("Name", RepeatSettings.GetNestedName, RepeatSettings.SetNestedName)
+					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValueNested, RepeatSettings.SetNumFooValueNested)
+					.AddElement("StringBars")
+					.AddChildElement("StringBar", RepeatSettings.GetCollectionItem, RepeatSettings.SetCollectionItem)
+					.SetRepeating(RepeatSettings.CreateNestedCollectionRepeatItem, RepeatSettings.AreRemainingItemsInNestedCollection, RepeatSettings.CommitNestedCollectionRepeatItem);
+
+		}
+
+		[Test]
+		public static void TestRepeatingClass_SimpleCollection()
+		{
+			RepeatSettings settings = new RepeatSettings();
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			XmlDescription<RepeatSettings> description = CreateRepeatingNestedClassDescriptor(ns);
 
 			string sXml =
 				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><NumFoo>1</NumFoo><StringBar>foo</StringBar><StringBars><StringBar>One</StringBar><StringBar>Two</StringBar></StringBars></refSettings>";
@@ -189,33 +319,11 @@ namespace RefApp
 
 			Assert.AreEqual(1, settings.NumFoo);
 			Assert.AreEqual("foo", settings.StringBar);
-			Assert.AreEqual(2, settings.StringsBar.Count);
-			Assert.AreEqual("One", settings.StringsBar[0]);
-			Assert.AreEqual("Two", settings.StringsBar[1]);
+			Assert.AreEqual(2, settings.StringBars.Count);
+			Assert.AreEqual("One", settings.StringBars[0]);
+			Assert.AreEqual("Two", settings.StringBars[1]);
 		}
 
-		static XmlDescription<RepeatSettings> CreateRepeatingNestedClassDescriptor(string ns)
-		{
-			return 
-				XmlDescriptionBuilder<RepeatSettings>
-					.Build(ns, "refSettings")
-					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValue, RepeatSettings.SetNumFooValue)
-					.AddElement("StringBar", RepeatSettings.GetStringBarValue, RepeatSettings.SetStringBarValue)
-					.AddElement("StringBars")
-					.AddChildElement("StringBar", RepeatSettings.GetCollectionItem, RepeatSettings.SetCollectionItem)
-					.SetRepeating(RepeatSettings.CreateCollectionRepeatItem, RepeatSettings.CommitCollectionRepeatItem)
-					.Pop()
-					.AddElement("Nesteds")
-					.AddChildElement("Nested")
-					.SetRepeating(RepeatSettings.CreateNestedRepeatItem, RepeatSettings.CommitRepeatItem)
-					.AddAttribute("Name", RepeatSettings.GetNestedName, RepeatSettings.SetNestedName)
-					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValueNested, RepeatSettings.SetNumFooValueNested)
-					.AddElement("StringBars")
-					.AddChildElement("StringBar", RepeatSettings.GetCollectionItem, RepeatSettings.SetCollectionItem)
-					.SetRepeating(RepeatSettings.CreateCollectionRepeatItem, RepeatSettings.CommitNestedCollectionRepeatItem);
-
-		}
-		
 		[Test]
 		public static void TestRepeatingNestedClass_WithSimpleCollection()
 		{
@@ -229,24 +337,24 @@ namespace RefApp
 				+ "<NumFoo>1</NumFoo>"
 				+ "<StringBar>foo</StringBar>"
 				+ "<StringBars>"
-					+ "<StringBar>One</StringBar>"
-					+ "<StringBar>Two</StringBar>"
+				+ "<StringBar>One</StringBar>"
+				+ "<StringBar>Two</StringBar>"
 				+ "</StringBars>"
 				+ "<Nesteds>"
-					+ "<Nested Name='test'>"
-						+ "<NumFoo>11</NumFoo>"
-						+ "<StringBars>"
-							+ "<StringBar>One</StringBar>"
-							+ "<StringBar>Two</StringBar>"
-						+ "</StringBars>"
-					+ "</Nested>"
-					+ "<Nested Name='test2'>"
-						+ "<NumFoo>22</NumFoo>"
-						+ "<StringBars>"
-							+ "<StringBar>2One</StringBar>"
-							+ "<StringBar>2Two</StringBar>"
-						+ "</StringBars>"
-					+ "</Nested>"
+				+ "<Nested Name='test'>"
+				+ "<NumFoo>11</NumFoo>"
+				+ "<StringBars>"
+				+ "<StringBar>One</StringBar>"
+				+ "<StringBar>Two</StringBar>"
+				+ "</StringBars>"
+				+ "</Nested>"
+				+ "<Nested Name='test2'>"
+				+ "<NumFoo>22</NumFoo>"
+				+ "<StringBars>"
+				+ "<StringBar>2One</StringBar>"
+				+ "<StringBar>2Two</StringBar>"
+				+ "</StringBars>"
+				+ "</Nested>"
 				+ "</Nesteds>"
 				+ "</refSettings>";
 
@@ -258,9 +366,9 @@ namespace RefApp
 
 			Assert.AreEqual(1, settings.NumFoo);
 			Assert.AreEqual("foo", settings.StringBar);
-			Assert.AreEqual(2, settings.StringsBar.Count);
-			Assert.AreEqual("One", settings.StringsBar[0]);
-			Assert.AreEqual("Two", settings.StringsBar[1]);
+			Assert.AreEqual(2, settings.StringBars.Count);
+			Assert.AreEqual("One", settings.StringBars[0]);
+			Assert.AreEqual("Two", settings.StringBars[1]);
 			Assert.AreEqual(2, settings.MapNested.Count);
 			Assert.AreEqual(11, settings.MapNested["test"].NestedNumFoo);
 			Assert.AreEqual(2, settings.MapNested["test"].NestedStrings.Count);
@@ -285,20 +393,20 @@ namespace RefApp
 				+ "<NumFoo>1</NumFoo>"
 				+ "<StringBar>foo</StringBar>"
 				+ "<StringBars>"
-					+ "<StringBar>One</StringBar>"
-					+ "<StringBar>Two</StringBar>"
+				+ "<StringBar>One</StringBar>"
+				+ "<StringBar>Two</StringBar>"
 				+ "</StringBars>"
 				+ "<Nesteds>"
-					+ "<Nested Name='test'>"
-						+ "<NumFoo>11</NumFoo>"
-						+ "<StringBars>"
-							+ "<StringBar>One</StringBar>"
-							+ "<StringBar>Two</StringBar>"
-						+ "</StringBars>"
-					+ "</Nested>"
-					+ "<Nested Name='test2'>"
-						+ "<NumFoo>22</NumFoo>"
-					+ "</Nested>"
+				+ "<Nested Name='test'>"
+				+ "<NumFoo>11</NumFoo>"
+				+ "<StringBars>"
+				+ "<StringBar>One</StringBar>"
+				+ "<StringBar>Two</StringBar>"
+				+ "</StringBars>"
+				+ "</Nested>"
+				+ "<Nested Name='test2'>"
+				+ "<NumFoo>22</NumFoo>"
+				+ "</Nested>"
 				+ "</Nesteds>"
 				+ "</refSettings>";
 
@@ -310,9 +418,9 @@ namespace RefApp
 
 			Assert.AreEqual(1, settings.NumFoo);
 			Assert.AreEqual("foo", settings.StringBar);
-			Assert.AreEqual(2, settings.StringsBar.Count);
-			Assert.AreEqual("One", settings.StringsBar[0]);
-			Assert.AreEqual("Two", settings.StringsBar[1]);
+			Assert.AreEqual(2, settings.StringBars.Count);
+			Assert.AreEqual("One", settings.StringBars[0]);
+			Assert.AreEqual("Two", settings.StringBars[1]);
 			Assert.AreEqual(2, settings.MapNested.Count);
 			Assert.AreEqual(11, settings.MapNested["test"].NestedNumFoo);
 			Assert.AreEqual(2, settings.MapNested["test"].NestedStrings.Count);
@@ -321,5 +429,173 @@ namespace RefApp
 			Assert.AreEqual(22, settings.MapNested["test2"].NestedNumFoo);
 			Assert.AreEqual(null, settings.MapNested["test2"].NestedStrings);
 		}
+
+		[Test]
+		public static void TestWriteRepeatingNestedClass_WithSimpleCollection()
+		{
+			RepeatSettings settings = new RepeatSettings();
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			settings.StringBar = "foo";
+			settings.NumFoo = 1;
+			settings.StringBars = new List<string>(new[] { "One", "Two" });
+			settings.MapNested = new Dictionary<string, RepeatSettings.Nested>();
+			settings.MapNested.Add("test", new RepeatSettings.Nested());
+			settings.MapNested["test"].NestedNumFoo = 11;
+			settings.MapNested["test"].NestedStrings = new List<string>(new[] { "One", "Two" });
+			settings.MapNested.Add("test2", new RepeatSettings.Nested());
+			settings.MapNested["test2"].NestedNumFoo = 22;
+			settings.MapNested["test2"].NestedStrings = new List<string>(new[] { "2One", "2Two" });
+
+			XmlDescription<RepeatSettings> description = CreateRepeatingNestedClassDescriptor(ns);
+
+			string sXml =
+				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\">"
+				+ "<NumFoo>1</NumFoo>"
+				+ "<StringBar>foo</StringBar>"
+				+ "<StringBars>"
+					+ "<StringBar>One</StringBar>"
+					+ "<StringBar>Two</StringBar>"
+				+ "</StringBars>"
+				+ "<Nesteds>"
+					+ "<Nested Name=\"test\">"
+						+ "<NumFoo>11</NumFoo>"
+						+ "<StringBars>"
+							+ "<StringBar>One</StringBar>"
+							+ "<StringBar>Two</StringBar>"
+						+ "</StringBars>"
+					+ "</Nested>"
+					+ "<Nested Name=\"test2\">"
+						+ "<NumFoo>22</NumFoo>"
+						+ "<StringBars>"
+							+ "<StringBar>2One</StringBar>"
+							+ "<StringBar>2Two</StringBar>"
+						+ "</StringBars>"
+					+ "</Nested>"
+				+ "</Nesteds>"
+				+ "</refSettings>";
+
+			StringBuilder sb = new StringBuilder();
+
+			using (StringWriter stringWriter = new StringWriter(sb))
+			{
+				using (WriteFile<RepeatSettings> file = WriteFile<RepeatSettings>.CreateSettingsFile(stringWriter))
+					file.SerializeSettings(description, settings);
+			}
+
+			Assert.AreEqual(sXml, sb.ToString());
+		}
+
+
+		[Test]
+		public static void TestWriteRepeatingNestedClass_EmptyNestedClass()
+		{
+			RepeatSettings settings = new RepeatSettings();
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			settings.StringBar = "foo";
+			settings.NumFoo = 1;
+			settings.StringBars = new List<string>(new[] { "One", "Two" });
+
+			XmlDescription<RepeatSettings> description = CreateRepeatingNestedClassDescriptor(ns);
+
+			string sXml =
+				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\">"
+				+ "<NumFoo>1</NumFoo>"
+				+ "<StringBar>foo</StringBar>"
+				+ "<StringBars>"
+					+ "<StringBar>One</StringBar>"
+					+ "<StringBar>Two</StringBar>"
+				+ "</StringBars>"
+				+ "</refSettings>";
+
+			StringBuilder sb = new StringBuilder();
+
+			using (StringWriter stringWriter = new StringWriter(sb))
+			{
+				using (WriteFile<RepeatSettings> file = WriteFile<RepeatSettings>.CreateSettingsFile(stringWriter))
+					file.SerializeSettings(description, settings);
+			}
+
+			Assert.AreEqual(sXml, sb.ToString());
+		}
+
+		#endregion
+
+		#region Test Simple Top Level Collection
+
+		private static XmlDescription<RepeatSettings> CreateSimpleCollectionDescriptor(string ns)
+		{
+			XmlDescription<RepeatSettings> description =
+				XmlDescriptionBuilder<RepeatSettings>
+					.Build(ns, "refSettings")
+					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValue, RepeatSettings.SetNumFooValue)
+					.AddElement("StringBar", RepeatSettings.GetStringBarValue, RepeatSettings.SetStringBarValue)
+					.AddElement("StringBars")
+					.AddChildElement("StringBar", RepeatSettings.GetCollectionItem, RepeatSettings.SetCollectionItem)
+					.SetRepeating(
+						RepeatSettings.CreateCollectionRepeatItem,
+						RepeatSettings.AreRemainingItemsInCollection,
+						RepeatSettings.CommitCollectionRepeatItem);
+			return description;
+		}
+		
+		// write tests
+		[Test]
+		public static void TestWriteRepeatingClass_SimpleCollection()
+		{
+			RepeatSettings settings = new RepeatSettings();
+
+			settings.NumFoo = 10;
+			settings.StringBar = "foo";
+			settings.StringBars = new List<string>(new string[] {"One", "Two"});
+			
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			XmlDescription<RepeatSettings> description = CreateSimpleCollectionDescriptor(ns);
+
+			StringBuilder sb = new StringBuilder();
+			
+			using (StringWriter stringWriter = new StringWriter(sb))
+			{
+				using (WriteFile<RepeatSettings> file = WriteFile<RepeatSettings>.CreateSettingsFile(stringWriter))
+					file.SerializeSettings(description, settings);
+			}
+
+			string sXml =
+				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><NumFoo>10</NumFoo><StringBar>foo</StringBar><StringBars><StringBar>One</StringBar><StringBar>Two</StringBar></StringBars></refSettings>";
+			
+			Assert.AreEqual(sXml, sb.ToString());
+		}
+
+		[Test]
+		public static void TestWriteRepeatingClass_SimpleCollectionEmpty()
+		{
+			RepeatSettings settings = new RepeatSettings();
+
+			settings.NumFoo = 10;
+			settings.StringBar = "foo";
+
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			XmlDescription<RepeatSettings> description = CreateSimpleCollectionDescriptor(ns);
+
+			StringBuilder sb = new StringBuilder();
+
+			using (StringWriter stringWriter = new StringWriter(sb))
+			{
+				using (WriteFile<RepeatSettings> file = WriteFile<RepeatSettings>.CreateSettingsFile(stringWriter))
+					file.SerializeSettings(description, settings);
+			}
+
+			string sXml =
+				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><NumFoo>10</NumFoo><StringBar>foo</StringBar></refSettings>";
+
+			Assert.AreEqual(sXml, sb.ToString());
+		}
+
+		#endregion
+
+
 	}
 }

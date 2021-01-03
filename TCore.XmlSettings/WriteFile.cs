@@ -72,7 +72,7 @@ namespace TCore.XmlSettings
 			Element<T> element = m_xmlDescription.RootElement;
 
 			List<Element<T>> latentElements = new List<Element<T>>();
-			if (!FWriteElement(element, latentElements))
+			if (!FWriteElement(element, latentElements, null))
 				throw new Exception("root element not required??");
 
 			m_writer.WriteEndDocument();
@@ -107,9 +107,9 @@ namespace TCore.XmlSettings
 			%%Function:FAddAttribute
 			%%Qualified:TCore.XmlSettings.WriteFile<T>.FAddAttribute
 		----------------------------------------------------------------------------*/
-		bool FAddAttribute(Attribute<T> attribute, List<Element<T>> latentElements)
+		bool FAddAttribute(Attribute<T> attribute, List<Element<T>> latentElements, RepeatContext<T>.RepeatItemContext repeatItemContext)
 		{
-			bool fHasValue = attribute.FGetValue(m_t, out string value);
+			bool fHasValue = attribute.FGetValue(m_t, out string value, repeatItemContext);
 
 			if (attribute.Required || fHasValue)
 			{
@@ -128,12 +128,12 @@ namespace TCore.XmlSettings
 			%%Function:FAddElementAttributes
 			%%Qualified:TCore.XmlSettings.WriteFile<T>.FAddElementAttributes
 		----------------------------------------------------------------------------*/
-		bool FAddElementAttributes(Element<T> element, List<Element<T>> latentElements)
+		bool FAddElementAttributes(Element<T> element, List<Element<T>> latentElements, RepeatContext<T>.RepeatItemContext repeatItemContext)
 		{
 			bool fAddedAttribute = false;
 
 			foreach (Attribute<T> attribute in element.Attributes)
-				fAddedAttribute |= FAddAttribute(attribute, latentElements);
+				fAddedAttribute |= FAddAttribute(attribute, latentElements, repeatItemContext);
 
 			return fAddedAttribute;
 		}
@@ -148,45 +148,64 @@ namespace TCore.XmlSettings
 			(since we don't want to open elements unless they are necessary, we will
 			pass down a stack of latent	elements that will be opened on demand
 		----------------------------------------------------------------------------*/
-		bool FWriteElement(Element<T> element, List<Element<T>> latentElements)
+		bool FWriteElement(Element<T> element, List<Element<T>> latentElements, RepeatContext<T>.RepeatItemContext repeatItemContextParent)
 		{
-			bool fHasValue = element.FGetValue(m_t, out string value);
-			latentElements.Add(element); // this is latent until we need it
-
 			// as we write things, keep track of whether or not we wrote
 			// anything (which would mean that our element is no longer latent
 			// and thus needs to be closed)
 			bool fWroteChildren = false;
+			bool fRepeat = false;
 
-			// write any attributes
-			fWroteChildren |= FAddElementAttributes(element, latentElements);
-
-			if (element.Required && fHasValue == false)
-				throw new Exception("missing required value");
-
-			if (element.Required || fHasValue)
+			do
 			{
-				WriteLatentElementStarts(latentElements);
-				fWroteChildren = true;
-			}
+				RepeatContext<T>.RepeatItemContext repeatItemContext = repeatItemContextParent;
+				
+				if (element.IsRepeating)
+				{
+					// first see if there are any remaining items to write for this
+					// repeating item.
+					if (!element.AreRemainingRepeatingItems(m_t, repeatItemContextParent))
+						return fWroteChildren; // we didn't write anything
 
-			// if we have a value, we can't have children too
-			if (fHasValue)
-			{
-				if (element.Children.Count > 0)
-					throw new Exception("data inconsistent -- mixed content not allowed");
+					repeatItemContext = element.CreateRepeatItem(m_t, element, repeatItemContextParent);
+					fRepeat = true; // we will repeat until we return above
+				}
 
-				m_writer.WriteString(value);
-				m_writer.WriteEndElement();
+				bool fHasValue = element.FGetValue(m_t, out string value, repeatItemContext);
 
-				return true;
-			}
+				latentElements.Add(element); // this is latent until we need it
 
-			foreach (Element<T> child in element.Children)
-				fWroteChildren |= FWriteElement(child, latentElements);
+				// write any attributes
+				fWroteChildren |= FAddElementAttributes(element, latentElements, repeatItemContext);
 
-			if (fWroteChildren)
-				m_writer.WriteEndElement();
+				if (element.Required && fHasValue == false)
+					throw new Exception("missing required value");
+
+				if (element.Required || fHasValue)
+				{
+					WriteLatentElementStarts(latentElements);
+					fWroteChildren = true;
+				}
+
+				// if we have a value, we can't have children too
+				if (fHasValue)
+				{
+					if (element.Children.Count > 0)
+						throw new Exception("data inconsistent -- mixed content not allowed");
+
+					m_writer.WriteString(value);
+					m_writer.WriteEndElement();
+
+					continue;	// repeat if we are going to...
+				}
+
+				foreach (Element<T> child in element.Children)
+					fWroteChildren |= FWriteElement(child, latentElements, repeatItemContext);
+
+				if (fWroteChildren)
+					m_writer.WriteEndElement();
+				
+			} while (fRepeat);
 
 			return fWroteChildren;
 		}

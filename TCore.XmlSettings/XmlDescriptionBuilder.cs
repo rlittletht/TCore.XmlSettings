@@ -147,11 +147,19 @@ namespace TCore.XmlSettings
 			return Pop().AddChildElement(elementName, getValueDelegate, setValueDelegate, ns);
 		}
 
+		/*----------------------------------------------------------------------------
+			%%Function:SetRepeating
+			%%Qualified:TCore.XmlSettings.XmlDescriptionBuilder<T>.SetRepeating
+
+			Set the current element as a repeating element. Must provide the 
+			3 delegates.
+		----------------------------------------------------------------------------*/
 		public XmlDescriptionBuilder<T> SetRepeating(
-			RepeatContext<T>.CreateRepeatItem createRepeatItemDelegate,
+			RepeatContext<T>.CreateRepeatItemContext createRepeatItemContextDelegate,
+			RepeatContext<T>.AreRemainingItems areRemainingItemsDelegate,
 			RepeatContext<T>.CommitRepeatItem commitRepeatItemDelegate)
 		{
-			elementStack[elementStack.Count - 1].SetRepeating(createRepeatItemDelegate, commitRepeatItemDelegate);
+			elementStack[elementStack.Count - 1].SetRepeating(createRepeatItemContextDelegate, areRemainingItemsDelegate, commitRepeatItemDelegate);
 			return this;
 		}
 		

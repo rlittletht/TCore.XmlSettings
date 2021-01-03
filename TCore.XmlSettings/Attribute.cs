@@ -6,8 +6,8 @@ namespace TCore.XmlSettings
 {
 	public class Attribute<T>
 	{
-		public delegate void SetValueDelegate(T t, string value, RepeatContext<T>.RepeatItem repeatItem);
-		public delegate string GetValueDelegate(T t, RepeatContext<T>.RepeatItem repeatItem);
+		public delegate void SetValueDelegate(T t, string value, RepeatContext<T>.RepeatItemContext repeatItemContext);
+		public delegate string GetValueDelegate(T t, RepeatContext<T>.RepeatItemContext repeatItemContext);
 
 		public string Namespace { get; set; }
 		public string AttributeName { get; set; }
@@ -24,13 +24,13 @@ namespace TCore.XmlSettings
 			Get the value using the delegate we were given. If we have no delegate,
 			or if the delegate returns null, then return false.
 		----------------------------------------------------------------------------*/
-		public bool FGetValue(T t, out string value, RepeatContext<T>.RepeatItem repeatItem = null)
+		public bool FGetValue(T t, out string value, RepeatContext<T>.RepeatItemContext repeatItemContext = null)
 		{
 			value = null;
 
 			if (m_delegateGetValue != null)
 			{
-				return (value = m_delegateGetValue(t, repeatItem)) != null;
+				return (value = m_delegateGetValue(t, repeatItemContext)) != null;
 			}
 			
 			return false;
@@ -42,7 +42,7 @@ namespace TCore.XmlSettings
 
 			Set the value using the delegate we were given
 		----------------------------------------------------------------------------*/
-		public void SetValue(T t, string value, bool discardIfNoSetter, RepeatContext<T>.RepeatItem repeatItem = null)
+		public void SetValue(T t, string value, bool discardIfNoSetter, RepeatContext<T>.RepeatItemContext repeatItemContext = null)
 		{
 			if (m_delegateSetValue == null)
 			{
@@ -52,7 +52,7 @@ namespace TCore.XmlSettings
 				return;
 			}
 
-			m_delegateSetValue(t, value, repeatItem);
+			m_delegateSetValue(t, value, repeatItemContext);
 		}
 		
 		/*----------------------------------------------------------------------------
