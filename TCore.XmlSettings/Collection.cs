@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -122,12 +123,12 @@ namespace TCore.XmlSettings
 		public void BuildFileList()
 		{
 			m_files = new List<FileDescription>();
-			
+
 			foreach (string searchDir in m_searchDirs)
 			{
 				if (!Directory.Exists(searchDir))
 					continue;
-				
+
 				foreach (string file in Directory.EnumerateFiles(searchDir))
 				{
 					foreach (FileType filetype in FileTypes)
@@ -146,7 +147,7 @@ namespace TCore.XmlSettings
 		{
 			foreach (string searchDir in m_searchDirs)
 			{
-				if (!Directory.Exists(searchDir))
+				if (Directory.Exists(searchDir))
 					continue;
 
 				Directory.CreateDirectory(searchDir);
@@ -163,6 +164,8 @@ namespace TCore.XmlSettings
 		
 		public WriteFile<T> CreateSettingsWriteFile<T>(string settingName)
 		{
+			EnsureSettingsDirectoriesCreated();
+			
 			TextWriter tw = new StreamWriter(GetFullPathName(settingName));
 
 			return WriteFile<T>.CreateSettingsFile(tw);
