@@ -21,11 +21,11 @@ namespace RefApp
 			public int NumFoo { get; set; }
 			public string StringBar { get; set; }
 			public List<string> StringBars { get; set; }
-
 			public int CurrentStringBar { get; set; }
 			public class Nested
 			{
 				public string Name { get; set; }
+				public string NestedStringVal { get; set; }
 				public int NestedNumFoo { get; set; }
 				public List<string> NestedStrings { get; set; }
 				public int CurrentNestedString { get; set; }
@@ -65,6 +65,9 @@ namespace RefApp
 
 			public static void SetNumFooValueNested(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).NestedNumFoo = Int32.Parse(value);
 			public static string GetNumFooValueNested(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).NestedNumFoo.ToString();
+
+			public static void SetNestedStringValueNested(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).NestedStringVal = value;
+			public static string GetNestedStringValueNested(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).NestedStringVal;
 
 			public static void SetNestedName(RepeatSettings settings, string value, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).Name = value;
 			public static string GetNestedName(RepeatSettings settings, RepeatContext<RepeatSettings>.RepeatItemContext repeatItemContext) => ((Nested)repeatItemContext.RepeatKey).Name;
@@ -169,7 +172,11 @@ namespace RefApp
 			{
 				if (settings.MapNested != null && settings.NestedEnumerator != null)
 				{
-					// also propagate the name
+					// also propagate the name (we will only have access to the item as the
+					// repeatItemContext.ContextKey, so we won't have access to the key in the
+					// dictionary that brought us here. propagate that here since our item
+					// doesn't have the key in it. If your item already has the key, then you
+					// can just use that (though asserting they are the same is not a bad thing)
 					settings.MapNested[settings.NestedEnumerator.Current].Name = settings.NestedEnumerator.Current;
 					return new RepeatContext<RepeatSettings>.RepeatItemContext(
 						element,
@@ -223,6 +230,100 @@ namespace RefApp
 					.AddAttribute("Name", RepeatSettings.GetNestedName, RepeatSettings.SetNestedName)
 					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValueNested, RepeatSettings.SetNumFooValueNested);
 			return description;
+		}
+
+		private static XmlDescription<RepeatSettings> CreateRepeatingClassStringValueXmlDescriptor(string ns)
+		{
+			XmlDescription<RepeatSettings> description =
+				XmlDescriptionBuilder<RepeatSettings>
+					.Build(ns, "refSettings")
+					.AddChildElement("NumFoo", RepeatSettings.GetNumFooValue, RepeatSettings.SetNumFooValue)
+					.AddElement("StringBar", RepeatSettings.GetStringBarValue, RepeatSettings.SetStringBarValue)
+					.AddElement("Nesteds")
+					.AddChildElement("Nested")
+					.SetRepeating(
+						RepeatSettings.CreateNestedRepeatItem,
+						RepeatSettings.AreRemainingNestedItems,
+						RepeatSettings.CommitRepeatItem)
+					.AddAttribute("Name", RepeatSettings.GetNestedName, RepeatSettings.SetNestedName)
+					.AddChildElement("StringVal", RepeatSettings.GetNestedStringValueNested, RepeatSettings.SetNestedStringValueNested);
+			return description;
+		}
+
+		[Test]
+		public static void TestWriteRepeatingClass_TwoItemsWithNullValues()
+		{
+			RepeatSettings settings = new RepeatSettings();
+
+			settings.NumFoo = 1;
+			settings.StringBar = "foo";
+			settings.MapNested = new Dictionary<string, RepeatSettings.Nested>()
+			{
+				{ "test", new RepeatSettings.Nested() },
+				{ "test2", new RepeatSettings.Nested() },
+			};
+
+			// assert preconditions
+			Assert.AreEqual(1, settings.NumFoo);
+			Assert.AreEqual("foo", settings.StringBar);
+			Assert.AreEqual(2, settings.MapNested.Count);
+			Assert.AreEqual(null, settings.MapNested["test"].NestedStringVal);
+			Assert.AreEqual(null, settings.MapNested["test2"].NestedStringVal);
+
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			XmlDescription<RepeatSettings> description = CreateRepeatingClassStringValueXmlDescriptor(ns);
+
+			StringBuilder sb = new StringBuilder();
+
+			using (StringWriter stringWriter = new StringWriter(sb))
+			{
+				using (WriteFile<RepeatSettings> file = WriteFile<RepeatSettings>.CreateSettingsFile(stringWriter))
+					file.SerializeSettings(description, settings);
+			}
+
+			string sXml =
+				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><NumFoo>1</NumFoo><StringBar>foo</StringBar><Nesteds><Nested Name=\"test\" /><Nested Name=\"test2\" /></Nesteds></refSettings>";
+
+			Assert.AreEqual(sXml, sb.ToString());
+		}
+
+		[Test]
+		public static void TestWriteRepeatingClass_TwoItems()
+		{
+			RepeatSettings settings = new RepeatSettings();
+
+			settings.NumFoo = 1;
+			settings.StringBar = "foo";
+			settings.MapNested = new Dictionary<string, RepeatSettings.Nested>()
+			{
+				{ "test", new RepeatSettings.Nested() {NestedNumFoo = 11 }},
+				{ "test2", new RepeatSettings.Nested() {NestedNumFoo = 22 }},
+			};
+
+			// assert preconditions
+			Assert.AreEqual(1, settings.NumFoo);
+			Assert.AreEqual("foo", settings.StringBar);
+			Assert.AreEqual(2, settings.MapNested.Count);
+			Assert.AreEqual(11, settings.MapNested["test"].NestedNumFoo);
+			Assert.AreEqual(22, settings.MapNested["test2"].NestedNumFoo);
+
+			string ns = "http://schemas.thetasoft.com/TCore.XmlSettings/reftest/2020";
+
+			XmlDescription<RepeatSettings> description = CreateRepeatingClassXmlDescriptor(ns);
+
+			StringBuilder sb = new StringBuilder();
+
+			using (StringWriter stringWriter = new StringWriter(sb))
+			{
+				using (WriteFile<RepeatSettings> file = WriteFile<RepeatSettings>.CreateSettingsFile(stringWriter))
+					file.SerializeSettings(description, settings);
+			}
+
+			string sXml =
+				$"<?xml version=\"1.0\" encoding=\"utf-16\"?><refSettings xmlns=\"{ns}\"><NumFoo>1</NumFoo><StringBar>foo</StringBar><Nesteds><Nested Name=\"test\"><NumFoo>11</NumFoo></Nested><Nested Name=\"test2\"><NumFoo>22</NumFoo></Nested></Nesteds></refSettings>";
+
+			Assert.AreEqual(sXml, sb.ToString());
 		}
 
 		[Test]

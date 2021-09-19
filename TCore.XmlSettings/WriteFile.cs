@@ -204,7 +204,9 @@ namespace TCore.XmlSettings
 
 				if (fWroteChildren)
 					m_writer.WriteEndElement();
-				
+				else
+					latentElements.RemoveAt(0);
+
 			} while (fRepeat);
 
 			return fWroteChildren;
