@@ -8,8 +8,4 @@
     <PackageProjectUrl>https://github.com/rlittletht/TCore.XmlSettings</PackageProjectUrl>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\TCore.XMLIO\XMLIO\XMLIO.csproj" />
-  </ItemGroup>
-
 </Project>
