@@ -8,4 +8,8 @@
     <PackageProjectUrl>https://github.com/rlittletht/TCore.XmlSettings</PackageProjectUrl>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="TCore.XMLIO" Version="1.0.3" />
+  </ItemGroup>
+
 </Project>
