@@ -27,7 +27,7 @@ jobs:
           dotnet-version: 3.1.x
       - name: Install dependencies
         run: dotnet restore
-      - name: Build XMLIO
+      - name: Build TCore.XmlSettings
         run: dotnet build --configuration Release --no-restore TCore.XmlSettings
       - name: Publish TCore.XmlSettings
         run: dotnet nuget push TCore.XmlSettings/bin/Release/*.nupkg -s https://thetaget.azurewebsites.net/nuget -k ${NUGET_KEY} --no-symbols --skip-duplicate
