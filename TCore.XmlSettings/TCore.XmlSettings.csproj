@@ -6,9 +6,12 @@
     <Authors>Robert Little</Authors>
     <Description>Templated reading and writing for XML files</Description>
     <PackageProjectUrl>https://github.com/rlittletht/TCore.XmlSettings</PackageProjectUrl>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
   </PropertyGroup>
-
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <LangVersion>8.0</LangVersion>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="TCore.XMLIO" Version="1.0.3" />
   </ItemGroup>

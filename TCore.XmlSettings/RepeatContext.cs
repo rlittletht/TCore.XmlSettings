@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+
 /*
  * Repeating items are tricky to support in a generic way.
  *
@@ -54,36 +55,36 @@ using System.Text;
  */
 namespace TCore.XmlSettings
 {
-	public class RepeatContext<T>
-	{
-		public delegate RepeatItemContext CreateRepeatItemContext(T t, Element<T> element, RepeatItemContext parent);
-		public delegate void CommitRepeatItem(T t, RepeatItemContext itemContext);
-		public delegate bool AreRemainingItems(T t, RepeatItemContext itemContext);
-		
-		public class RepeatItemContext
-		{
-			public Element<T> RepeatElement { get; set; }
-			public object RepeatKey { get; set; }
-			public RepeatItemContext Parent { get; set; }
+    public class RepeatContext<T>
+    {
+        public delegate RepeatItemContext CreateRepeatItemContext(T t, Element<T> element, RepeatItemContext? parent);
+        public delegate void CommitRepeatItem(T t, RepeatItemContext? itemContext);
+        public delegate bool AreRemainingItems(T t, RepeatItemContext? itemContext);
 
-			public RepeatItemContext(Element<T> element, RepeatItemContext parent, object key)
-			{
-				RepeatElement = element;
-				RepeatKey = key;
-				Parent = parent;
-			}
-		}
+        public class RepeatItemContext
+        {
+            public Element<T> RepeatElement { get; set; }
+            public object RepeatKey { get; set; }
+            public RepeatItemContext? Parent { get; set; }
 
-		public Stack<RepeatItemContext> ContextStack { get; set; }
+            public RepeatItemContext(Element<T> element, RepeatItemContext? parent, object key)
+            {
+                RepeatElement = element;
+                RepeatKey = key;
+                Parent = parent;
+            }
+        }
 
-		public void Push(RepeatItemContext itemContext)
-		{
-			ContextStack.Push(itemContext);
-		}
+        public Stack<RepeatItemContext> ContextStack { get; set; } = new Stack<RepeatItemContext>();
 
-		public RepeatItemContext Pop()
-		{
-			return ContextStack.Pop();
-		}
-	}
+        public void Push(RepeatItemContext itemContext)
+        {
+            ContextStack.Push(itemContext);
+        }
+
+        public RepeatItemContext Pop()
+        {
+            return ContextStack.Pop();
+        }
+    }
 }
